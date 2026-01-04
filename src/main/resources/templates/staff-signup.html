@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Staff Signup</title>
+    <link rel="stylesheet" th:href="@{/css/auth.css}">
+</head>
+<body>
+
+<div class="auth-container">
+    <h2>Staff Registration</h2>
+
+    <form th:action="@{/staff/signup}" th:object="${staff}" method="post">
+
+        <input type="text" th:field="*{fullName}" placeholder="Full Name" required>
+		<input type="text" th:field="*{phoneNumber}" placeholder="Phone Number">
+        <input type="text" th:field="*{aadharNumber}" placeholder="Aadhaar Number" required>
+        <input type="text" th:field="*{bankIdNo}" placeholder="Bank ID Number" required>
+        <input type="text" th:field="*{username}" placeholder="Username" required>
+        <input type="password" th:field="*{password}" placeholder="Password" required>
+		
+		<select th:field="*{service.id}" required>
+		    <option value="">-- Select Service --</option>
+		    <option th:each="s : ${services}"
+		            th:value="${s.id}"
+		            th:text="${s.name}">
+		    </option>
+		</select>
+
+
+        <button type="submit">Create Staff Account</button>
+    </form>
+
+    <div class="auth-footer">
+        <a th:href="@{/login}">Back to Login</a>
+    </div>
+</div>
+
+</body>
+</html>

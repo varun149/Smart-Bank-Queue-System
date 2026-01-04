@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8">
+<title>Login | Smart Bank Queue System</title>
+
+<style>
+@charset "UTF-8";
+
+* {
+	box-sizing: border-box;
+	font-family: "Segoe UI", Arial, sans-serif;
+}
+
+body {
+	margin: 0;
+	height: 100vh;
+	background: linear-gradient(135deg, #1e3c72, #2a5298);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.auth-container {
+	width: 380px;
+	background: #ffffff;
+	padding: 30px;
+	border-radius: 10px;
+	box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+}
+
+.auth-container h2 {
+	text-align: center;
+	margin-bottom: 25px;
+	color: #1e3c72;
+}
+
+.auth-container input {
+	width: 100%;
+	padding: 10px;
+	margin-bottom: 15px;
+	border-radius: 5px;
+	border: 1px solid #ccc;
+	font-size: 14px;
+}
+
+.auth-container input:focus {
+	outline: none;
+	border-color: #1e3c72;
+}
+
+.auth-container button {
+	width: 100%;
+	padding: 10px;
+	background: #1e3c72;
+	color: white;
+	border: none;
+	border-radius: 5px;
+	font-size: 15px;
+	cursor: pointer;
+}
+
+.auth-container button:hover {
+	background: #16335f;
+}
+
+.error {
+	background: #ffe6e6;
+	color: #b30000;
+	padding: 10px;
+	margin-bottom: 15px;
+	border-radius: 5px;
+	text-align: center;
+	font-size: 14px;
+}
+
+.auth-footer {
+	text-align: center;
+	margin-top: 15px;
+	font-size: 13px;
+}
+
+.auth-footer a {
+	color: #1e3c72;
+	text-decoration: none;
+	font-weight: 600;
+}
+</style>
+
+</head>
+
+<body>
+
+	<div class="auth-container">
+		<h2>Smart Bank Queue System</h2>
+
+		<!-- Error Message -->
+		<div th:if="${error}" class="error" th:text="${error}"></div>
+
+		<!-- Login Form -->
+		<form th:action="@{/login}" th:object="${loginDto}" method="post">
+
+			<div class="form-group">
+				<label>Username</label> <input type="text" th:field="*{username}"
+					required />
+			</div>
+
+			<div class="form-group">
+				<label>Password</label> <input type="password"
+					th:field="*{password}" required />
+			</div>
+
+			<button type="submit" class="btn">Login</button>
+		</form>
+
+		<div class="auth-footer">
+			<p>
+				New Customer? <a th:href="@{/customer/signup}">Sign up here</a>
+			</p>
+			<p>
+				Staff? <a th:href="@{/staff/signup}">Sign up here</a>
+			</p>
+		</div>
+	</div>
+
+</body>
+</html>
