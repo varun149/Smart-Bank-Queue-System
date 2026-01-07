@@ -61,7 +61,7 @@ public class QueueTokenServiceImpl implements QueueTokenService {
 	    Customer customer = customerRepository.findByUsername(username)
 	            .orElseThrow(() -> new RuntimeException("Customer not found"));
 
-	    // Only consider active tokens
+	    // Only consider active(WAITING) tokens
 	    List<TokenStatus> activeStatuses = List.of(TokenStatus.WAITING, TokenStatus.SERVING);
 
 	    QueueToken latestToken = queueTokenRepository

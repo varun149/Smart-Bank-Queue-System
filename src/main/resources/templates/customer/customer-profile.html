@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Customer Profile</title>
+    <link rel="stylesheet" th:href="@{/css/customer-dashboard.css}">
+</head>
+<body>
+
+<div class="dashboard">
+
+    <div class="sidebar">
+        <h2>SBQS</h2>
+
+        <a th:href="@{/customer/profile}" class="active">Profile</a>
+        <a th:href="@{/customer/book-token}">Book Token</a>
+        <a th:href="@{/customer/token-status}">Token Status</a>
+        <a th:href="@{/customer/past-appointments}">Past Appointments</a>
+        <a th:href="@{/logout}">Logout</a>
+    </div>
+
+    <div class="content">
+        <div class="card">
+            <h2>My Profile</h2>
+
+            <form th:action="@{/customer/profile/update}" method="post">
+
+                <input type="text" th:value="${customer.username}" readonly>
+
+                <input type="text"
+                       name="fullName"
+                       th:value="${customer.fullName}"
+                       required>
+
+                <input type="text"
+                       name="phoneNumber"
+                       th:value="${customer.phoneNumber}"
+                       required>
+
+                <input type="text"
+                       th:value="${customer.aadharNumber}"
+                       readonly>
+
+                <input type="text"
+                       name="ifscCode"
+                       th:value="${customer.ifscCode}"
+                       required>
+
+                <button type="submit">Update Profile</button>
+            </form>
+
+            <br>
+            <a th:href="@{/customer/change-password}">Change Password</a>
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>

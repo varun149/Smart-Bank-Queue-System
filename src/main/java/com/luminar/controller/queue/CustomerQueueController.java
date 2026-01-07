@@ -1,58 +1,91 @@
 package com.luminar.controller.queue;
 
-import java.security.Principal;
-import java.util.List;
-
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 
-import com.luminar.dto.queue.PastTokenDTO;
-import com.luminar.dto.queue.TokenStatusViewDTO;
-import com.luminar.service.queue.QueueTokenService;
+import com.luminar.entity.Customer;
+import com.luminar.repository.CustomerRepository;
+
+import jakarta.servlet.http.HttpSession;
 
 @Controller
+@RequestMapping("/customer")
 public class CustomerQueueController {
-	 private final QueueTokenService queueTokenService;
 
-	    public CustomerQueueController(QueueTokenService queueTokenService) {
-	        this.queueTokenService = queueTokenService;
-	    }
+	@Autowired
+	private CustomerRepository customerRepository;
 
-	    // Book Token
-	    @PostMapping("/customer/book-token")
-	    public String bookToken(@RequestParam Long serviceId, Principal principal) {
+	// ================= PROFILE VIEW =================
+	@GetMapping("/profile")
+	public String viewProfile(HttpSession session, Model model) {
 
-	        String username = principal.getName();
-	        queueTokenService.bookToken(username, serviceId);
+		Customer customer = (Customer) session.getAttribute("LOGGED_IN_CUSTOMER");
+		if (customer == null) {
+			return "redirect:/login";
+		}
 
-	        return "redirect:/customer/token-status";
-	    }
+		model.addAttribute("customer", customer);
+		return "customer/customer-profile"; // FULL PAGE
+	}
 
-	    //  Token Status Page
-	    @GetMapping("/customer/token-status")
-	    public String tokenStatus(Model model, Principal principal) {
+	// ================= PROFILE UPDATE =================
+	@PostMapping("/profile/update")
+	public String updateProfile(HttpSession session, @RequestParam String fullName, @RequestParam String phoneNumber,
+			@RequestParam String ifscCode) {
 
-	        String username = principal.getName();
-	        TokenStatusViewDTO dto = queueTokenService.getTokenStatusForCustomer(username);
+		Customer customer = (Customer) session.getAttribute("LOGGED_IN_CUSTOMER");
+		if (customer == null) {
+			return "redirect:/login";
+		}
 
-	        model.addAttribute("tokenStatus", dto);
-	        return "customer/token-status";
-	    }
+		customer.setFullName(fullName);
+		customer.setPhoneNumber(phoneNumber);
+		customer.setIfscCode(ifscCode);
 
-	    // Past Appointments
-	    @GetMapping("/customer/past-appointments")
-	    public String pastAppointments(Model model, Principal principal) {
+		customerRepository.save(customer);
+		session.setAttribute("LOGGED_IN_CUSTOMER", customer);
 
-	        String username = principal.getName();
-	        List<PastTokenDTO> pastTokens =
-	                queueTokenService.getRecentPastTokens(username, 10);
+		return "redirect:/customer/profile";
+	}
 
-	        model.addAttribute("pastTokens", pastTokens);
-	        return "customer/past-appointments";
-	    }
+	// ================= CHANGE PASSWORD PAGE =================
+	@GetMapping("/change-password")
+	public String changePasswordPage(HttpSession session, Model model) {
 
-	
+		Customer customer = (Customer) session.getAttribute("LOGGED_IN_CUSTOMER");
+		if (customer == null) {
+			return "redirect:/login";
+		}
+
+		model.addAttribute("customer", customer);
+		return "customer/change-password"; // FULL PAGE
+	}
+
+	// ================= CHANGE PASSWORD SUBMIT =================
+	@PostMapping("/change-password")
+	public String changePassword(HttpSession session, @RequestParam String oldPassword,
+			@RequestParam String newPassword, @RequestParam String confirmPassword, Model model) {
+
+		Customer customer = (Customer) session.getAttribute("LOGGED_IN_CUSTOMER");
+		if (customer == null) {
+			return "redirect:/login";
+		}
+
+		if (!customer.getPassword().equals(oldPassword)) {
+			model.addAttribute("error", "Old password is incorrect");
+			return "customer/change-password";
+		}
+
+		if (!newPassword.equals(confirmPassword)) {
+			model.addAttribute("error", "Passwords do not match");
+			return "customer/change-password";
+		}
+
+		customer.setPassword(newPassword);
+		customerRepository.save(customer);
+
+		return "redirect:/customer/profile";
+	}
 }

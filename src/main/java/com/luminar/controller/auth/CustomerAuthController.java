@@ -17,7 +17,7 @@ public class CustomerAuthController {
 	private CustomerRepository customerRepo;
 
 	@GetMapping("/customer/signup")
-	public String customerSignupPage(org.springframework.ui.Model model) {
+	public String customerSignupPage(Model model) {
 		model.addAttribute("customer", new Customer());
 		return "customer-signup";
 	}
