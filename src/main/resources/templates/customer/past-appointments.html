@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Past Appointments</title>
+    <link rel="stylesheet" th:href="@{/css/customer-dashboard.css}">
+    <style>
+        .table-container {
+            margin: 20px auto;
+            max-width: 800px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid #ccc;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f5f5f5;
+        }
+        tr:nth-child(even) {
+            background-color: #fafafa;
+        }
+        .card {
+            padding: 20px;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .center-card {
+            margin: auto;
+        }
+    </style>
+</head>
+<body>
+
+<div class="dashboard">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <h2>SBQS</h2>
+        <a th:href="@{/customer/profile}">Profile</a>
+        <a th:href="@{/customer/book-token}">Book Token</a>
+        <a th:href="@{/customer/token-status}">Token Status</a>
+        <a th:href="@{/customer/past-appointments}" class="active">Past Appointments</a>
+        <a th:href="@{/logout}">Logout</a>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="content">
+        <div class="card center-card">
+
+            <h2>Past Appointments</h2>
+
+            <div th:if="${pastTokens == null or #lists.isEmpty(pastTokens)}">
+                <p>No past appointments found.</p>
+            </div>
+
+            <div th:if="${pastTokens != null and !#lists.isEmpty(pastTokens)}" class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Token No</th>
+                            <th>Service</th>
+                            <th>Status</th>
+                            <th>Created At</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="token : ${pastTokens}">
+                            <td th:text="${token.tokenNo}"></td>
+                            <td th:text="${token.serviceName}"></td>
+                            <td th:text="${token.status}"></td>
+                             <td th:text="${#temporals.format(token.createdAt, 'dd-MM-yyyy HH:mm')}"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>

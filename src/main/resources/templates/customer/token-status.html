@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Token Status</title>
+    <link rel="stylesheet" th:href="@{/css/customer-dashboard.css}">
+</head>
+<body>
+
+<div class="dashboard">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <h2>SBQS</h2>
+
+        <a th:href="@{/customer/profile}">Profile</a>
+        <a th:href="@{/customer/book-token}">Book Token</a>
+        <a th:href="@{/customer/token-status}" class="active">Token Status</a>
+        <a th:href="@{/customer/past-appointments}">Past Appointments</a>
+        
+        <a th:href="@{/logout}">Logout</a>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="content">
+        <div class="card center-card">
+
+            <h2>Token Status</h2>
+
+            <!-- When NO active token -->
+            <div th:if="${tokenStatus == null}">
+                <p>You do not have any active tokens.</p>
+                <a th:href="@{/customer/book-token}">
+                    <button>Book a Token</button>
+                </a>
+            </div>
+
+            <!-- When token exists -->
+            <div th:if="${tokenStatus != null}">
+
+                <p><strong>Service:</strong>
+                    <span th:text="${tokenStatus.serviceName}"></span>
+                </p>
+
+                <p><strong>Your Token:</strong>
+					<span th:text="${tokenStatus.yourToken}"></span>
+                </p>
+
+			       <p><strong>Status:</strong>
+			    <span th:text="${tokenStatus.yourStatus}"></span>
+			</p>
+
+
+                <p><strong>Currently Serving:</strong>
+                    <span th:text="${tokenStatus.currentlyServingToken != null 
+                                    ? tokenStatus.currentlyServingToken 
+                                    : 'Not started'}"></span>
+                </p>
+
+                <p><strong>People Waiting:</strong>
+                    <span th:text="${tokenStatus.waitingCount}"></span>
+                </p>
+
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>

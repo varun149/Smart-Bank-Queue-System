@@ -1,6 +1,7 @@
 package com.luminar.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -27,5 +28,8 @@ public interface QueueTokenRepository extends JpaRepository<QueueToken, Long> {
 	
 	// Get the latest waiting token for a service
 	QueueToken findFirstByServiceAndStatusOrderByCreatedAtDesc(BankServices service, TokenStatus status);
+	
+	// REQUIRED for complete / skip token flow
+	Optional<QueueToken> findByTokenNo(String tokenNo);
 
 }
