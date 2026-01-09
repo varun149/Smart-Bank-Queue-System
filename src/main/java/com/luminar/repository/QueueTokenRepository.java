@@ -78,5 +78,9 @@ public interface QueueTokenRepository extends JpaRepository<QueueToken, Long> {
 
 	@Lock(LockModeType.PESSIMISTIC_WRITE)
 	QueueToken findFirstByServiceAndStatusInOrderByCreatedAtDesc(BankServices service, List<TokenStatus> statuses);
+	
+	// Get the last token of any status for a service (for sequence increment)
+	QueueToken findTopByServiceOrderByCreatedAtDesc(BankServices service);
+
 
 }

@@ -42,39 +42,38 @@ public class QueueTokenServiceImpl implements QueueTokenService {
 	@Transactional
 	public void bookToken(String username, Long serviceId) {
 
-		Customer customer = customerRepository.findByUsername(username)
-				.orElseThrow(() -> new RuntimeException("Customer not found"));
+	    Customer customer = customerRepository.findByUsername(username)
+	            .orElseThrow(() -> new RuntimeException("Customer not found"));
 
-		BankServices service = bankServicesRepository.findById(serviceId)
-				.orElseThrow(() -> new RuntimeException("Service not found"));
+	    BankServices service = bankServicesRepository.findById(serviceId)
+	            .orElseThrow(() -> new RuntimeException("Service not found"));
 
-		// 🚫 Prevent double booking (DB truth)
-		boolean alreadyBooked = queueTokenRepository.existsByCustomerAndServiceAndStatusIn(customer, service,
-				List.of(TokenStatus.WAITING, TokenStatus.SERVING));
+	    // Prevent double booking (DB truth)
+	    boolean alreadyBooked = queueTokenRepository.existsByCustomerAndServiceAndStatusIn(customer, service,
+	            List.of(TokenStatus.WAITING, TokenStatus.SERVING));
 
-		if (alreadyBooked) {
-			throw new RuntimeException("You already have an active token");
-		}
+	    if (alreadyBooked) {
+	        throw new RuntimeException("You already have an active token");
+	    }
 
-		// 🔒 LOCK last active token for this service
-		QueueToken lastToken = queueTokenRepository.findFirstByServiceAndStatusInOrderByCreatedAtDesc(service,
-				List.of(TokenStatus.WAITING, TokenStatus.SERVING));
+	    // 🔒 Get last token for this service, regardless of status
+	    QueueToken lastToken = queueTokenRepository.findTopByServiceOrderByCreatedAtDesc(service);
 
-		int nextSeq = 1;
+	    int nextSeq = 1;
 
-		if (lastToken != null) {
-			String[] parts = lastToken.getTokenNo().split("-");
-			nextSeq = Integer.parseInt(parts[1]) + 1;
-		}
+	    if (lastToken != null) {
+	        String[] parts = lastToken.getTokenNo().split("-");
+	        nextSeq = Integer.parseInt(parts[1]) + 1;
+	    }
 
-		String tokenNo = service.getCode() + "-" + String.format("%03d", nextSeq);
+	    String tokenNo = service.getCode() + "-" + String.format("%03d", nextSeq);
 
-		QueueToken token = new QueueToken(tokenNo, service, customer, TokenStatus.WAITING);
+	    QueueToken token = new QueueToken(tokenNo, service, customer, TokenStatus.WAITING);
 
-		queueTokenRepository.save(token);
+	    queueTokenRepository.save(token);
 
-		// 📊 Redis counter (cache only)
-		redisTemplate.opsForValue().increment("queue:" + service.getCode() + ":waiting");
+	    // 📊 Redis counter (cache only)
+	    redisTemplate.opsForValue().increment("queue:" + service.getCode() + ":waiting");
 	}
 
 	// ========================= CUSTOMER TOKEN STATUS =========================
