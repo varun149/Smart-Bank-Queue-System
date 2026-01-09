@@ -81,6 +81,6 @@ public interface QueueTokenRepository extends JpaRepository<QueueToken, Long> {
 	
 	// Get the last token of any status for a service (for sequence increment)
 	QueueToken findTopByServiceOrderByCreatedAtDesc(BankServices service);
-
+	
 
 }
