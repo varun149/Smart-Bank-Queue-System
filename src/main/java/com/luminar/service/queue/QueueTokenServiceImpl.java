@@ -146,80 +146,72 @@ public class QueueTokenServiceImpl implements QueueTokenService {
 	@Override
 	@Transactional
 	public void callNextToken(Long serviceId) {
+	    BankServices service = bankServicesRepository.findById(serviceId)
+	            .orElseThrow(() -> new RuntimeException("Service not found"));
 
-		BankServices service = bankServicesRepository.findById(serviceId)
-				.orElseThrow(() -> new RuntimeException("Service not found"));
+	    String code = service.getCode();
 
-		String code = service.getCode();
+	    // Check if a token is already being served
+	    QueueToken servingToken = queueTokenRepository.findFirstByServiceAndStatusOrderByCreatedAtAsc(service, TokenStatus.SERVING);
+	    if (servingToken != null) {
+	        throw new RuntimeException("A token is already being served");
+	    }
 
-		if (redisTemplate.opsForValue().get("queue:" + code + ":serving") != null) {
-			throw new RuntimeException("A token is already being served");
-		}
+	    // Pick the next waiting token
+	    QueueToken nextToken = queueTokenRepository.findFirstByServiceAndStatusOrderByCreatedAtAsc(service, TokenStatus.WAITING);
+	    if (nextToken == null) {
+	        throw new RuntimeException("No waiting tokens");
+	    }
 
-		QueueToken nextToken = queueTokenRepository.findFirstByServiceAndStatusOrderByCreatedAtAsc(service,
-				TokenStatus.WAITING);
+	    nextToken.setStatus(TokenStatus.SERVING);
+	    queueTokenRepository.save(nextToken);
 
-		if (nextToken == null) {
-			throw new RuntimeException("No waiting tokens");
-		}
-
-		nextToken.setStatus(TokenStatus.SERVING);
-		queueTokenRepository.save(nextToken);
-
-		redisTemplate.opsForValue().set("queue:" + code + ":serving", nextToken.getTokenNo());
-
-		redisTemplate.opsForValue().decrement("queue:" + code + ":waiting");
+	    // Update Redis
+	    redisTemplate.opsForValue().set("queue:" + code + ":serving", nextToken.getTokenNo());
+	    redisTemplate.opsForValue().decrement("queue:" + code + ":waiting");
 	}
 
 	// ========================= COMPLETE TOKEN =========================
 	@Override
 	@Transactional
 	public void completeCurrentToken(Long serviceId) {
+	    BankServices service = bankServicesRepository.findById(serviceId)
+	            .orElseThrow(() -> new RuntimeException("Service not found"));
+	    String code = service.getCode();
 
-		BankServices service = bankServicesRepository.findById(serviceId)
-				.orElseThrow(() -> new RuntimeException("Service not found"));
+	    // Fetch token currently being served
+	    QueueToken token = queueTokenRepository.findFirstByServiceAndStatusOrderByCreatedAtAsc(service, TokenStatus.SERVING);
+	    if (token == null) {
+	        throw new RuntimeException("No token is currently being served");
+	    }
 
-		String code = service.getCode();
+	    token.setStatus(TokenStatus.COMPLETED);
+	    queueTokenRepository.save(token);
 
-		String tokenNo = redisTemplate.opsForValue().get("queue:" + code + ":serving");
-
-		if (tokenNo == null) {
-			throw new RuntimeException("No token is currently being served");
-		}
-
-		QueueToken token = queueTokenRepository.findByTokenNo(tokenNo)
-				.orElseThrow(() -> new RuntimeException("Token not found"));
-
-		token.setStatus(TokenStatus.COMPLETED);
-		queueTokenRepository.save(token);
-
-		redisTemplate.delete("queue:" + code + ":serving");
+	    redisTemplate.delete("queue:" + code + ":serving");
 	}
 
 	// ========================= SKIP TOKEN =========================
 	@Override
 	@Transactional
 	public void skipCurrentToken(Long serviceId) {
+	    BankServices service = bankServicesRepository.findById(serviceId)
+	            .orElseThrow(() -> new RuntimeException("Service not found"));
+	    String code = service.getCode();
 
-		BankServices service = bankServicesRepository.findById(serviceId)
-				.orElseThrow(() -> new RuntimeException("Service not found"));
+	    // Fetch token currently being served
+	    QueueToken token = queueTokenRepository.findFirstByServiceAndStatusOrderByCreatedAtAsc(service, TokenStatus.SERVING);
+	    if (token == null) {
+	        throw new RuntimeException("No token is currently being served");
+	    }
 
-		String code = service.getCode();
+	    token.setStatus(TokenStatus.SKIPPED);
+	    queueTokenRepository.save(token);
 
-		String tokenNo = redisTemplate.opsForValue().get("queue:" + code + ":serving");
-
-		if (tokenNo == null) {
-			throw new RuntimeException("No token is currently being served");
-		}
-
-		QueueToken token = queueTokenRepository.findByTokenNo(tokenNo)
-				.orElseThrow(() -> new RuntimeException("Token not found"));
-
-		token.setStatus(TokenStatus.SKIPPED);
-		queueTokenRepository.save(token);
-
-		redisTemplate.delete("queue:" + code + ":serving");
+	    redisTemplate.delete("queue:" + code + ":serving");
 	}
+
+
 
 	// ========================= STAFF APPOINTMENTS =========================
 	@Override
