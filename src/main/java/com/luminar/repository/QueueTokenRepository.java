@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -14,6 +15,8 @@ import com.luminar.entity.BankServices;
 import com.luminar.entity.Customer;
 import com.luminar.entity.QueueToken;
 import com.luminar.entity.TokenStatus;
+
+import jakarta.persistence.LockModeType;
 
 @Repository
 public interface QueueTokenRepository extends JpaRepository<QueueToken, Long> {
@@ -56,5 +59,24 @@ public interface QueueTokenRepository extends JpaRepository<QueueToken, Long> {
 			""")
 	List<StaffAppointmentDTO> findTodayAppointments(@Param("serviceId") Long serviceId,
 			@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+	// Count how many tokens are created TODAY for a service
+	@Query("""
+			    SELECT COUNT(t)
+			    FROM QueueToken t
+			    WHERE t.service.id = :serviceId
+			      AND t.createdAt >= :start
+			      AND t.createdAt < :end
+			""")
+	long countTodayTokens(@Param("serviceId") Long serviceId, @Param("start") LocalDateTime start,
+			@Param("end") LocalDateTime end);
+
+	boolean existsByCustomerAndServiceAndStatusIn(Customer customer, BankServices service, List<TokenStatus> statuses);
+
+	QueueToken findFirstByServiceAndCreatedAtBetweenOrderByCreatedAtDesc(BankServices service, LocalDateTime start,
+			LocalDateTime end);
+
+	@Lock(LockModeType.PESSIMISTIC_WRITE)
+	QueueToken findFirstByServiceAndStatusInOrderByCreatedAtDesc(BankServices service, List<TokenStatus> statuses);
 
 }

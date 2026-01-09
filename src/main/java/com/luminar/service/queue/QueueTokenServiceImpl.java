@@ -1,7 +1,6 @@
 package com.luminar.service.queue;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,6 +20,8 @@ import com.luminar.repository.BankServicesRepository;
 import com.luminar.repository.CustomerRepository;
 import com.luminar.repository.QueueTokenRepository;
 
+import jakarta.transaction.Transactional;
+
 @Service
 public class QueueTokenServiceImpl implements QueueTokenService {
 
@@ -36,88 +37,97 @@ public class QueueTokenServiceImpl implements QueueTokenService {
 	@Autowired
 	private CustomerRepository customerRepository;
 
+	// ========================= BOOK TOKEN =========================
 	@Override
+	@Transactional
 	public void bookToken(String username, Long serviceId) {
 
 		Customer customer = customerRepository.findByUsername(username)
 				.orElseThrow(() -> new RuntimeException("Customer not found"));
+
 		BankServices service = bankServicesRepository.findById(serviceId)
 				.orElseThrow(() -> new RuntimeException("Service not found"));
 
-		String code = service.getCode();
+		// 🚫 Prevent double booking (DB truth)
+		boolean alreadyBooked = queueTokenRepository.existsByCustomerAndServiceAndStatusIn(customer, service,
+				List.of(TokenStatus.WAITING, TokenStatus.SERVING));
 
-		// Get last token for this service to increment sequence
-		QueueToken lastToken = queueTokenRepository.findFirstByServiceAndStatusOrderByCreatedAtDesc(service,
-				TokenStatus.WAITING);
+		if (alreadyBooked) {
+			throw new RuntimeException("You already have an active token");
+		}
 
-		int nextSeq = (lastToken != null) ? Integer.parseInt(lastToken.getTokenNo().split("-")[1]) + 1 : 1;
-		String tokenNo = code + "-" + String.format("%03d", nextSeq);
+		// 🔒 LOCK last active token for this service
+		QueueToken lastToken = queueTokenRepository.findFirstByServiceAndStatusInOrderByCreatedAtDesc(service,
+				List.of(TokenStatus.WAITING, TokenStatus.SERVING));
 
-		// Save token
-		queueTokenRepository.save(new QueueToken(tokenNo, service, customer, TokenStatus.WAITING));
+		int nextSeq = 1;
 
-		// Update Redis waiting count
-		redisTemplate.opsForValue().increment("queue:" + code + ":waiting");
+		if (lastToken != null) {
+			String[] parts = lastToken.getTokenNo().split("-");
+			nextSeq = Integer.parseInt(parts[1]) + 1;
+		}
+
+		String tokenNo = service.getCode() + "-" + String.format("%03d", nextSeq);
+
+		QueueToken token = new QueueToken(tokenNo, service, customer, TokenStatus.WAITING);
+
+		queueTokenRepository.save(token);
+
+		// 📊 Redis counter (cache only)
+		redisTemplate.opsForValue().increment("queue:" + service.getCode() + ":waiting");
 	}
 
+	// ========================= CUSTOMER TOKEN STATUS =========================
 	@Override
 	public TokenStatusViewDTO getTokenStatusForCustomer(String username) {
+
 		Customer customer = customerRepository.findByUsername(username)
 				.orElseThrow(() -> new RuntimeException("Customer not found"));
 
-		// Only consider active(WAITING) tokens
-		List<TokenStatus> activeStatuses = List.of(TokenStatus.WAITING, TokenStatus.SERVING);
-
 		QueueToken latestToken = queueTokenRepository.findFirstByCustomerAndStatusInOrderByCreatedAtDesc(customer,
-				activeStatuses);
+				List.of(TokenStatus.WAITING, TokenStatus.SERVING));
 
 		if (latestToken == null) {
-			return null; // no active token
+			return null;
 		}
 
 		String serviceCode = latestToken.getService().getCode();
 
-		// Currently serving token from Redis
 		String currentlyServing = redisTemplate.opsForValue().get("queue:" + serviceCode + ":serving");
 
-		// Waiting count from Redis
 		String waitingStr = redisTemplate.opsForValue().get("queue:" + serviceCode + ":waiting");
 
-		int waitingCount = (waitingStr != null) ? Integer.parseInt(waitingStr) : 0;
+		int waitingCount = waitingStr != null ? Integer.parseInt(waitingStr) : 0;
 
-		return new TokenStatusViewDTO(latestToken.getService().getName(), // serviceName
-				serviceCode, // serviceCode
-				latestToken.getTokenNo(), // Token
-				latestToken.getStatus().name(), // Status as String
-				currentlyServing, // currentlyServingToken
-				waitingCount // waitingCount
-		);
+		return new TokenStatusViewDTO(latestToken.getService().getName(), serviceCode, latestToken.getTokenNo(),
+				latestToken.getStatus().name(), currentlyServing, waitingCount);
 	}
 
+	// ========================= PAST TOKENS =========================
 	@Override
 	public List<PastTokenDTO> getRecentPastTokens(String username, int limit) {
+
 		Customer customer = customerRepository.findByUsername(username)
 				.orElseThrow(() -> new RuntimeException("Customer not found"));
 
-		// Only consider past tokens
-		List<TokenStatus> pastStatuses = List.of(TokenStatus.COMPLETED, TokenStatus.SKIPPED);
-
 		List<QueueToken> pastTokens = queueTokenRepository.findByCustomerAndStatusInOrderByCreatedAtDesc(customer,
-				pastStatuses);
+				List.of(TokenStatus.COMPLETED, TokenStatus.SKIPPED));
 
-		List<PastTokenDTO> dtoList = new ArrayList<>();
+		List<PastTokenDTO> result = new ArrayList<>();
 
 		for (int i = 0; i < Math.min(limit, pastTokens.size()); i++) {
-			QueueToken token = pastTokens.get(i);
-			dtoList.add(new PastTokenDTO(token.getTokenNo(), token.getService().getName(), token.getStatus().name(),
-					token.getCreatedAt()));
+			QueueToken t = pastTokens.get(i);
+			result.add(
+					new PastTokenDTO(t.getTokenNo(), t.getService().getName(), t.getStatus().name(), t.getCreatedAt()));
 		}
 
-		return dtoList;
+		return result;
 	}
 
+	// ========================= SERVICE QUEUE STATUS =========================
 	@Override
 	public ServiceQueueStatusDTO getServiceQueueStatus(Long serviceId) {
+
 		BankServices service = bankServicesRepository.findById(serviceId)
 				.orElseThrow(() -> new RuntimeException("Service not found"));
 
@@ -127,21 +137,22 @@ public class QueueTokenServiceImpl implements QueueTokenService {
 
 		String waiting = redisTemplate.opsForValue().get("queue:" + code + ":waiting");
 
-		int waitingCount = (waiting == null) ? 0 : Integer.parseInt(waiting);
+		int waitingCount = waiting != null ? Integer.parseInt(waiting) : 0;
 
 		return new ServiceQueueStatusDTO(service.getName(), code, currentToken, waitingCount);
 	}
 
+	// ========================= CALL NEXT TOKEN =========================
 	@Override
+	@Transactional
 	public void callNextToken(Long serviceId) {
+
 		BankServices service = bankServicesRepository.findById(serviceId)
 				.orElseThrow(() -> new RuntimeException("Service not found"));
 
 		String code = service.getCode();
 
-		String currentServing = redisTemplate.opsForValue().get("queue:" + code + ":serving");
-
-		if (currentServing != null) {
+		if (redisTemplate.opsForValue().get("queue:" + code + ":serving") != null) {
 			throw new RuntimeException("A token is already being served");
 		}
 
@@ -152,18 +163,17 @@ public class QueueTokenServiceImpl implements QueueTokenService {
 			throw new RuntimeException("No waiting tokens");
 		}
 
-		// Update DB
 		nextToken.setStatus(TokenStatus.SERVING);
 		queueTokenRepository.save(nextToken);
 
-		// Update Redis
 		redisTemplate.opsForValue().set("queue:" + code + ":serving", nextToken.getTokenNo());
 
 		redisTemplate.opsForValue().decrement("queue:" + code + ":waiting");
-
 	}
 
+	// ========================= COMPLETE TOKEN =========================
 	@Override
+	@Transactional
 	public void completeCurrentToken(Long serviceId) {
 
 		BankServices service = bankServicesRepository.findById(serviceId)
@@ -171,24 +181,24 @@ public class QueueTokenServiceImpl implements QueueTokenService {
 
 		String code = service.getCode();
 
-		String currentTokenNo = redisTemplate.opsForValue().get("queue:" + code + ":serving");
+		String tokenNo = redisTemplate.opsForValue().get("queue:" + code + ":serving");
 
-		if (currentTokenNo == null) {
+		if (tokenNo == null) {
 			throw new RuntimeException("No token is currently being served");
 		}
 
-		QueueToken token = queueTokenRepository.findByTokenNo(currentTokenNo)
+		QueueToken token = queueTokenRepository.findByTokenNo(tokenNo)
 				.orElseThrow(() -> new RuntimeException("Token not found"));
 
-		// Update DB
 		token.setStatus(TokenStatus.COMPLETED);
 		queueTokenRepository.save(token);
 
-		// Clear Redis serving
 		redisTemplate.delete("queue:" + code + ":serving");
 	}
 
+	// ========================= SKIP TOKEN =========================
 	@Override
+	@Transactional
 	public void skipCurrentToken(Long serviceId) {
 
 		BankServices service = bankServicesRepository.findById(serviceId)
@@ -196,32 +206,28 @@ public class QueueTokenServiceImpl implements QueueTokenService {
 
 		String code = service.getCode();
 
-		String currentTokenNo = redisTemplate.opsForValue().get("queue:" + code + ":serving");
+		String tokenNo = redisTemplate.opsForValue().get("queue:" + code + ":serving");
 
-		if (currentTokenNo == null) {
+		if (tokenNo == null) {
 			throw new RuntimeException("No token is currently being served");
 		}
 
-		QueueToken token = queueTokenRepository.findByTokenNo(currentTokenNo)
+		QueueToken token = queueTokenRepository.findByTokenNo(tokenNo)
 				.orElseThrow(() -> new RuntimeException("Token not found"));
 
-		// Update DB
 		token.setStatus(TokenStatus.SKIPPED);
 		queueTokenRepository.save(token);
 
-		// Clear Redis serving
 		redisTemplate.delete("queue:" + code + ":serving");
 	}
 
+	// ========================= STAFF APPOINTMENTS =========================
 	@Override
 	public List<StaffAppointmentDTO> getTodayAppointments(Long serviceId) {
 
 		LocalDate today = LocalDate.now();
 
-		LocalDateTime start = today.atStartOfDay();
-		LocalDateTime end = today.plusDays(1).atStartOfDay();
-
-		return queueTokenRepository.findTodayAppointments(serviceId, start, end);
+		return queueTokenRepository.findTodayAppointments(serviceId, today.atStartOfDay(),
+				today.plusDays(1).atStartOfDay());
 	}
-
 }

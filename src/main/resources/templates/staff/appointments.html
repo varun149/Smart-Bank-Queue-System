@@ -132,12 +132,12 @@
 					</thead>
 					<tbody>
 						<tr th:each="appt : ${appointments}">
-							<td th:text="${appt.tokenNo}"></td>
-							<td th:text="${appt.customerName}"></td>
-							<td th:text="${appt.status}"></td>
-							<td
-								th:text="${#dates.format(appt.createdAt, 'dd-MM-yyyy HH:mm')}"></td>
+							    <td th:text="${appt.tokenNo}"></td>
+							    <td th:text="${appt.customerName}"></td>
+							    <td th:text="${appt.status}"></td>
+							    <td th:text="${#temporals.format(appt.createdAt, 'dd-MM-yyyy HH:mm')}"></td>
 						</tr>
+
 
 						<tr th:if="${appointments.size() == 0}">
 							<td colspan="4" style="text-align: center;">No appointments
