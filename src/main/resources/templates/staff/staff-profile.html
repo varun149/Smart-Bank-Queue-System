@@ -29,6 +29,18 @@
                 <input type="text" name="username"
                        placeholder="Username"
                        th:value="${staff.username}" readonly>
+                       
+                <input type="text" name="bankId"
+                	   placeholder="Bank Id"
+                	   th:value="${staff.bankIdNo}" readonly>
+               	
+               	<input type="text" name="aadharNo"
+                	   placeholder="Aadhar Number"
+                	   th:value="${staff.aadharNumber}" readonly>
+                	   
+                <input type="text" name="phoneNo"
+                	   placeholder="Phone Number"
+                	   th:value="${staff.phoneNumber}" readonly>
 
                 <input type="text"
                        th:value="${staff.service.name}"
