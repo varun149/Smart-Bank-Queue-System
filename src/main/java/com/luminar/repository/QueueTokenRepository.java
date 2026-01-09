@@ -1,11 +1,15 @@
 package com.luminar.repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import com.luminar.dto.queue.StaffAppointmentDTO;
 import com.luminar.entity.BankServices;
 import com.luminar.entity.Customer;
 import com.luminar.entity.QueueToken;
@@ -25,11 +29,32 @@ public interface QueueTokenRepository extends JpaRepository<QueueToken, Long> {
 
 	// Optional: get waiting tokens for a service
 	List<QueueToken> findByServiceAndStatusOrderByCreatedAtAsc(BankServices service, TokenStatus status);
-	
+
 	// Get the latest waiting token for a service
 	QueueToken findFirstByServiceAndStatusOrderByCreatedAtDesc(BankServices service, TokenStatus status);
-	
+
 	// REQUIRED for complete / skip token flow
 	Optional<QueueToken> findByTokenNo(String tokenNo);
+
+	// REQUIRED for fetching TODAY'S appointments for each staff service (portable
+	// JPQL)
+	@Query("""
+			    SELECT new com.luminar.dto.queue.StaffAppointmentDTO(
+			        t.id,
+			        t.tokenNo,
+			        c.fullName,
+			        c.ifscCode,
+			        t.status,
+			        t.createdAt
+			    )
+			    FROM QueueToken t
+			    JOIN t.customer c
+			    WHERE t.service.id = :serviceId
+			      AND t.createdAt >= :start
+			      AND t.createdAt < :end
+			    ORDER BY t.createdAt ASC
+			""")
+	List<StaffAppointmentDTO> findTodayAppointments(@Param("serviceId") Long serviceId,
+			@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
 }

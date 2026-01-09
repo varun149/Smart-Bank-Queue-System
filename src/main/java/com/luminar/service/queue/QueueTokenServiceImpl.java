@@ -1,5 +1,7 @@
 package com.luminar.service.queue;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -9,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import com.luminar.dto.queue.PastTokenDTO;
 import com.luminar.dto.queue.ServiceQueueStatusDTO;
+import com.luminar.dto.queue.StaffAppointmentDTO;
 import com.luminar.dto.queue.TokenStatusViewDTO;
 import com.luminar.entity.BankServices;
 import com.luminar.entity.Customer;
@@ -208,6 +211,17 @@ public class QueueTokenServiceImpl implements QueueTokenService {
 
 		// Clear Redis serving
 		redisTemplate.delete("queue:" + code + ":serving");
+	}
+
+	@Override
+	public List<StaffAppointmentDTO> getTodayAppointments(Long serviceId) {
+
+		LocalDate today = LocalDate.now();
+
+		LocalDateTime start = today.atStartOfDay();
+		LocalDateTime end = today.plusDays(1).atStartOfDay();
+
+		return queueTokenRepository.findTodayAppointments(serviceId, start, end);
 	}
 
 }

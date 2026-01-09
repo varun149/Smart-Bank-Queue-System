@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.luminar.dto.queue.PastTokenDTO;
 import com.luminar.dto.queue.ServiceQueueStatusDTO;
+import com.luminar.dto.queue.StaffAppointmentDTO;
 import com.luminar.dto.queue.TokenStatusViewDTO;
 
 public interface QueueTokenService {
@@ -51,4 +52,10 @@ public interface QueueTokenService {
 	 * Mark currently serving token as SKIPPED.
 	 */
 	void skipCurrentToken(Long serviceId);
+	
+	/**
+	 *	Get today's appointments for each staff service
+	 */
+	List<StaffAppointmentDTO> getTodayAppointments(Long serviceId);
+
 }

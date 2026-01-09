@@ -1,0 +1,156 @@
+<!-- <!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Staff | Today's Appointments</title>
+    <link rel="stylesheet" th:href="@{/css/staff-dashboard.css}">
+</head>
+<body>
+
+<div class="dashboard">
+
+    ===== SIDEBAR =====
+    <div class="sidebar">
+        <h2>Staff Panel</h2>
+
+        <a th:href="@{/staff/profile}">Profile</a>
+        <a th:href="@{/staff/appointments}" class="active">Appointments</a>
+        <a th:href="@{/logout}">Logout</a>
+    </div>
+
+    ===== MAIN CONTENT =====
+    <div class="content">
+        <div class="card" style="max-width: 900px;">
+            <h2>Today's Appointments</h2>
+
+            <table width="100%" border="1" cellpadding="10" cellspacing="0">
+                <thead>
+                    <tr>
+                        <th>Token No</th>
+                        <th>Customer</th>
+                        <th>IFSC</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    <tr th:each="token : ${appointments}">
+                        <td th:text="${token.tokenNo}"></td>
+                        <td th:text="${token.customerName}"></td>
+                        <td th:text="${token.ifscCode}"></td>
+                        <td th:text="${token.status}"></td>
+                        <td>
+                            <a th:href="@{/staff/appointments/{id}(id=${token.tokenId})}">
+                                Update
+                            </a>
+                        </td>
+                    </tr>
+
+                    <tr th:if="${appointments.size() == 0}">
+                        <td colspan="5" style="text-align:center;">
+                            No appointments today
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html> -->
+
+
+
+
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<title>Staff Appointments</title>
+<link rel="stylesheet" th:href="@{/css/staff-dashboard.css}">
+</head>
+<body>
+
+	<div class="dashboard">
+
+		<!-- SIDEBAR -->
+		<div class="sidebar">
+			<h2>Staff Panel</h2>
+			<a th:href="@{/staff/profile}">Profile</a> <a
+				th:href="@{/staff/appointments}" class="active">Appointments</a> <a
+				th:href="@{/logout}">Logout</a>
+		</div>
+
+		<!-- MAIN CONTENT -->
+		<div class="content">
+			<div class="card" style="max-width: 800px; width: 100%;">
+
+				<h2>Today's Appointments</h2>
+
+				<!-- CURRENTLY SERVING -->
+				<div th:if="${queueStatus.currentlyServingToken != null}"
+					style="margin-bottom: 15px;">
+					<strong>Currently Serving:</strong> <span
+						th:text="${queueStatus.currentlyServingToken}"></span>
+				</div>
+
+				<div th:if="${queueStatus.currentlyServingToken == null}"
+					style="margin-bottom: 15px;">
+					<strong>No token currently being served</strong>
+				</div>
+
+
+				<!-- ACTION BUTTONS -->
+				<div style="margin-bottom: 20px;">
+					<form th:action="@{/staff/appointments/call-next}" method="post"
+						style="display: inline;">
+						<button type="submit">Call Next</button>
+					</form>
+
+					<form th:action="@{/staff/appointments/complete}" method="post"
+						style="display: inline;">
+						<button type="submit">Complete</button>
+					</form>
+
+					<form th:action="@{/staff/appointments/skip}" method="post"
+						style="display: inline;">
+						<button type="submit">Skip</button>
+					</form>
+				</div>
+
+				<!-- APPOINTMENTS TABLE -->
+				<table border="1" width="100%" cellpadding="10">
+					<thead>
+						<tr>
+							<th>Token No</th>
+							<th>Customer Name</th>
+							<th>Status</th>
+							<th>Booked At</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr th:each="appt : ${appointments}">
+							<td th:text="${appt.tokenNo}"></td>
+							<td th:text="${appt.customerName}"></td>
+							<td th:text="${appt.status}"></td>
+							<td
+								th:text="${#dates.format(appt.createdAt, 'dd-MM-yyyy HH:mm')}"></td>
+						</tr>
+
+						<tr th:if="${appointments.size() == 0}">
+							<td colspan="4" style="text-align: center;">No appointments
+								today</td>
+						</tr>
+					</tbody>
+				</table>
+
+			</div>
+		</div>
+
+	</div>
+
+</body>
+</html>
+
