@@ -18,8 +18,10 @@ public interface QueueTokenService {
 	 */
 	void bookToken(String username, Long serviceId);
 
-	//  Get live token status for the logged-in customer.
-	//  Used in customer dashboard "Token Status" page.
+	/*
+	 * Get live token status for the logged-in customer.
+	 * Used in customer dashboard "Token Status" page.
+	 */	
 	TokenStatusViewDTO getTokenStatusForCustomer(String username);
 
 	/**

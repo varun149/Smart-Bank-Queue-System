@@ -21,7 +21,7 @@ import jakarta.persistence.LockModeType;
 @Repository
 public interface QueueTokenRepository extends JpaRepository<QueueToken, Long> {
 
-	// Get the latest active token of a customer
+	// Fetches the customer’s current active token.
 	QueueToken findFirstByCustomerAndStatusInOrderByCreatedAtDesc(Customer customer, List<TokenStatus> statuses);
 
 	// Get past tokens for a customer
@@ -30,13 +30,10 @@ public interface QueueTokenRepository extends JpaRepository<QueueToken, Long> {
 	// Get the currently serving token for a service
 	QueueToken findFirstByServiceAndStatusOrderByCreatedAtAsc(BankServices service, TokenStatus status);
 
-	// Optional: get waiting tokens for a service
-	List<QueueToken> findByServiceAndStatusOrderByCreatedAtAsc(BankServices service, TokenStatus status);
-
 	// Get the latest waiting token for a service
 	QueueToken findFirstByServiceAndStatusOrderByCreatedAtDesc(BankServices service, TokenStatus status);
 
-	// REQUIRED for complete / skip token flow
+	// REQUIRED for complete / skip token flow (optional)
 	Optional<QueueToken> findByTokenNo(String tokenNo);
 
 	// REQUIRED for fetching TODAY'S appointments for each staff service (portable
@@ -71,16 +68,33 @@ public interface QueueTokenRepository extends JpaRepository<QueueToken, Long> {
 	long countTodayTokens(@Param("serviceId") Long serviceId, @Param("start") LocalDateTime start,
 			@Param("end") LocalDateTime end);
 
+	/*
+	 * Double booking prevention
+	 */
 	boolean existsByCustomerAndServiceAndStatusIn(Customer customer, BankServices service, List<TokenStatus> statuses);
 
-	QueueToken findFirstByServiceAndCreatedAtBetweenOrderByCreatedAtDesc(BankServices service, LocalDateTime start,
-			LocalDateTime end);
-
-	@Lock(LockModeType.PESSIMISTIC_WRITE)
-	QueueToken findFirstByServiceAndStatusInOrderByCreatedAtDesc(BankServices service, List<TokenStatus> statuses);
-	
 	// Get the last token of any status for a service (for sequence increment)
 	QueueToken findTopByServiceOrderByCreatedAtDesc(BankServices service);
 	
+	
+
+	// optional Repositories
+
+	/*
+	 *  Optional: get waiting tokens for a service
+	 */
+	List<QueueToken> findByServiceAndStatusOrderByCreatedAtAsc(BankServices service, TokenStatus status);
+
+	/*
+	 * Optional to scale multiple concurrent booking requests
+	 */
+	@Lock(LockModeType.PESSIMISTIC_WRITE)
+	QueueToken findFirstByServiceAndStatusInOrderByCreatedAtDesc(BankServices service, List<TokenStatus> statuses);
+
+	/*
+	 * optional if daily reset without COUNT
+	 */
+	QueueToken findFirstByServiceAndCreatedAtBetweenOrderByCreatedAtDesc(BankServices service, LocalDateTime start,
+			LocalDateTime end);
 
 }

@@ -56,7 +56,7 @@ public class QueueTokenServiceImpl implements QueueTokenService {
 	        throw new RuntimeException("You already have an active token");
 	    }
 
-	    // 🔒 Get last token for this service, regardless of status
+	    // Get last token for this service, regardless of status
 	    QueueToken lastToken = queueTokenRepository.findTopByServiceOrderByCreatedAtDesc(service);
 
 	    int nextSeq = 1;

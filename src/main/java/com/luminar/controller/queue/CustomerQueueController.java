@@ -47,10 +47,8 @@ public class CustomerQueueController {
 
 	// ================= PROFILE UPDATE =================
 	@PostMapping("/profile/update")
-	public String updateProfile(HttpSession session,
-	                            @RequestParam String fullName,
-	                            @RequestParam String phoneNumber,
-	                            @RequestParam String ifscCode) {
+	public String updateProfile(HttpSession session, @RequestParam String fullName, @RequestParam String phoneNumber,
+			@RequestParam String ifscCode) {
 
 		Customer customer = (Customer) session.getAttribute("LOGGED_IN_CUSTOMER");
 		if (customer == null) {
@@ -82,11 +80,8 @@ public class CustomerQueueController {
 
 	// ================= CHANGE PASSWORD SUBMIT =================
 	@PostMapping("/change-password")
-	public String changePassword(HttpSession session,
-	                             @RequestParam String oldPassword,
-	                             @RequestParam String newPassword,
-	                             @RequestParam String confirmPassword,
-	                             Model model) {
+	public String changePassword(HttpSession session, @RequestParam String oldPassword,
+			@RequestParam String newPassword, @RequestParam String confirmPassword, Model model) {
 
 		Customer customer = (Customer) session.getAttribute("LOGGED_IN_CUSTOMER");
 		if (customer == null) {
@@ -113,33 +108,31 @@ public class CustomerQueueController {
 	@GetMapping("/book-token")
 	public String bookTokenPage(HttpSession session, Model model) {
 
-	    Customer customer = (Customer) session.getAttribute("LOGGED_IN_CUSTOMER");
-	    if (customer == null) {
-	        return "redirect:/login";
-	    }
+		Customer customer = (Customer) session.getAttribute("LOGGED_IN_CUSTOMER");
+		if (customer == null) {
+			return "redirect:/login";
+		}
 
-	    // Data required to render the form
-	    model.addAttribute("services", bankServicesRepository.findAll());
+		// Data required to render the form
+		model.addAttribute("services", bankServicesRepository.findAll());
 
-	    return "customer/book-token";   // GET renders page
+		return "customer/book-token"; // GET renders page
 	}
-
 
 	// ================= BOOK TOKEN SUBMIT =================
 	@PostMapping("/book-token")
-	public String bookToken(HttpSession session,
-	                        @RequestParam("serviceId") Long serviceId) {
+	public String bookToken(HttpSession session, @RequestParam("serviceId") Long serviceId) {
 
-	    Customer customer = (Customer) session.getAttribute("LOGGED_IN_CUSTOMER");
-	    if (customer == null) {
-	        return "redirect:/login";
-	    }
+		Customer customer = (Customer) session.getAttribute("LOGGED_IN_CUSTOMER");
+		if (customer == null) {
+			return "redirect:/login";
+		}
 
-	    // Business logic only — NO rendering
-	    queueTokenService.bookToken(customer.getUsername(), serviceId);
+		// Business logic only — NO rendering
+		queueTokenService.bookToken(customer.getUsername(), serviceId);
 
-	    // PRG pattern (Post → Redirect → Get)
-	    return "redirect:/customer/token-status";
+		// PRG pattern (Post → Redirect → Get)
+		return "redirect:/customer/token-status";
 	}
 
 	// ================= TOKEN STATUS =================
@@ -151,8 +144,7 @@ public class CustomerQueueController {
 			return "redirect:/login";
 		}
 
-		TokenStatusViewDTO status =
-				queueTokenService.getTokenStatusForCustomer(customer.getUsername());
+		TokenStatusViewDTO status = queueTokenService.getTokenStatusForCustomer(customer.getUsername());
 
 		model.addAttribute("tokenStatus", status);
 		return "customer/token-status";
@@ -167,8 +159,7 @@ public class CustomerQueueController {
 			return "redirect:/login";
 		}
 
-		List<PastTokenDTO> pastTokens =
-				queueTokenService.getRecentPastTokens(customer.getUsername(), 20);
+		List<PastTokenDTO> pastTokens = queueTokenService.getRecentPastTokens(customer.getUsername(), 20);
 
 		model.addAttribute("pastTokens", pastTokens);
 		return "customer/past-appointments";
